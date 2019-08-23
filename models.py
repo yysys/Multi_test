@@ -321,6 +321,11 @@ class TransformerTagger:
         with tf.name_scope("dropout"):
             self.h_drop = tf.nn.dropout(self.h_pool_flat, keep_prob=0.8)
 
+        return self.h_drop
+
+    def build_dense_layer(self, inputs, filter_sizes, num_filters, reuse=None):
+        num_filters_total = num_filters * len(filter_sizes)
+
         with tf.name_scope("output"):
             W = tf.get_variable(
                 "W",

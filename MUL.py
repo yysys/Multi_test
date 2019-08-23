@@ -74,59 +74,29 @@ class Model(TransformerTagger):
         #return g_step, logits, train_op
 
 
-def tag2group(tags):
-    '''
-    ['O', 'O', 'B-XXX', 'M-XXX', 'E-XXX', 'O', 'S-YYY']
-        ==>
-    {
-        'XXX': [(2, 5)],
-        'YYY': [(6, 7)],
-    }
-    '''
-    groups = defaultdict(set)
-    last = None
-    for i, tag in enumerate(tags):
-        if tag == 'O':
-            last = None
-            continue
-        tag_head, tag_type = tag.split('-')
+# cls2idx = {'书籍': 0, '平板': 1, '手机': 2, '水果': 3, '洗发水': 4, '热水器': 5, '蒙牛': 6, '衣服': 7, '计算机': 8, '酒店': 9}
+category2idx = {'书籍': [0,0,0,0,0,0,0,0,0,1],
+           '平板': [0,0,0,0,0,0,0,0,1,0],
+           '手机': [0,0,0,0,0,0,0,1,0,0],
+           '水果': [0,0,0,0,0,0,1,0,0,0],
+         '洗发水': [0,0,0,0,0,1,0,0,0,0],
+         '热水器': [0,0,0,0,1,0,0,0,0,0],
+           '蒙牛': [0,0,0,1,0,0,0,0,0,0],
+           '衣服': [0,0,1,0,0,0,0,0,0,0],
+         '计算机': [0,1,0,0,0,0,0,0,0,0],
+           '酒店': [1,0,0,0,0,0,0,0,0,0]}
 
-        if tag_head == 'S':
-            groups[tag_type].add((i, i + 1))
-            last = None
+label2idx = {0:[0,1], 1:[1,0]}
 
-        elif tag_head == 'B':
-            last = [tag_type, i, None]
 
-        elif tag_head == 'I':
-            if last and last[0] == tag_type:
-                pass
-            else:
-                last = None
-
-        elif tag_head == 'E':
-            if last and last[0] == tag_type:
-                last[-1] = i + 1
-                groups[tag_type].add((last[1], last[2]))
-            last = None
-
-    return groups
-
-tag2idx = {'B-案发时间': 0, 'I-案发时间': 1, 'E-案发时间': 2, 'O': 3, 'B-姓名': 4, 'I-姓名': 5, 'E-姓名': 6, 'B-车型': 7, 'I-车型': 8, 'E-车型': 9, 'B-案发地': 10, 'I-案发地': 11, 'E-案发地': 12, 'B-酒精含量': 13, 'I-酒精含量': 14, 'E-酒精含量': 15}
-label2idx = {'无':[1,0,0,0], '肇事':[0,1,0,0], '查获':[0,0,1,0], '其他':[0,0,0,1]}
-
-print(label2idx)
-
-dp = DataPreparer2(length=512, tag2idx=tag2idx, label2id=label2idx, vocab_path=PATH_VOCAB)
-dp.load_all_corpus('./train_corpus/', './data_corpus/train_label.txt', maintain_vocab=False)
-dp2 = DataPreparer2(length=512, tag2idx=tag2idx, label2id=label2idx, vocab_path=PATH_VOCAB)
-dp2.load_all_corpus('./test_corpus/', './data_corpus/test_label.txt', maintain_vocab=False)
+dp = DataPreparer(category2idx=category2idx, label2idx=label2idx, vocab_path=PATH_VOCAB)
+dp.load_all_corpus('./data/data.csv', maintain_vocab=False)
 print('------------------------------------------------')
 print(len(dp.corpus))
-print(len(dp2.corpus))
 # split testset and trainset
+split_id = len(dp.corpus) * 0.8
 random.shuffle(dp.corpus)
-testset = dp2.corpus
+testset, dp.corpus = dp.corpus[:split_id], dp.corpus[split_id:]
 
 # build model
 tf.reset_default_graph()
